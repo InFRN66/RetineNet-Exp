@@ -2,6 +2,8 @@ import numpy as np
 import torch
 import torch.nn as nn
 
+from config.config import cfg
+
 def calc_iou(a, b):
     area = (b[:, 2] - b[:, 0]) * (b[:, 3] - b[:, 1])
 
@@ -12,21 +14,19 @@ def calc_iou(a, b):
     ih = torch.clamp(ih, min=0)
 
     ua = torch.unsqueeze((a[:, 2] - a[:, 0]) * (a[:, 3] - a[:, 1]), dim=1) + area - iw * ih
-
     ua = torch.clamp(ua, min=1e-8)
 
     intersection = iw * ih
-
     IoU = intersection / ua
-
     return IoU
+
 
 class FocalLoss(nn.Module):
     #def __init__(self):
 
     def forward(self, classifications, regressions, anchors, annotations):
-        alpha = 0.25
-        gamma = 2.0
+        alpha = cfg.TRAIN.ALPHA
+        gamma = cfg.TRAIN.GAMMA
         batch_size = classifications.shape[0]
         classification_losses = []
         regression_losses = []
@@ -57,9 +57,6 @@ class FocalLoss(nn.Module):
             IoU = calc_iou(anchors[0, :, :], bbox_annotation[:, :4]) # num_anchors x num_annotations
 
             IoU_max, IoU_argmax = torch.max(IoU, dim=1) # num_anchors x 1
-
-            #import pdb
-            #pdb.set_trace()
 
             # compute the loss for classification
             targets = torch.ones(classification.shape) * -1

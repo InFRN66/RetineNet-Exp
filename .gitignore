@@ -1,2 +1,6 @@
-.pth
+*.pth
+*.pt
+weights/*
+eval_result/*
+data/*
 __pycache__

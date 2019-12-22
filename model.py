@@ -82,6 +82,7 @@ class PyramidFeatures(nn.Module):
         P7_x = self.P7_2(P7_x)
 
         return [P3_x, P4_x, P5_x, P6_x, P7_x]
+        # return [P7_x]
 
 
 class RegressionModel(nn.Module):
@@ -196,6 +197,7 @@ class ResNet(nn.Module):
         self.classificationModel = ClassificationModel(256, num_classes=num_classes)
 
         self.anchors = Anchors()
+        # self.anchors = Anchors(pyramid_levels=[7])
 
         self.regressBoxes = BBoxTransform()
 
@@ -277,7 +279,7 @@ class ResNet(nn.Module):
 
             scores = torch.max(classification, dim=2, keepdim=True)[0]
 
-            scores_over_thresh = (scores>0.05)[0, :, 0]
+            scores_over_thresh = (scores > cfg.TEST.SCORE_THRESH)[0, :, 0]
 
             if scores_over_thresh.sum() == 0:
                 # no boxes to NMS, just return

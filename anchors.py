@@ -9,14 +9,24 @@ class Anchors(nn.Module):
 
         if pyramid_levels is None:
             self.pyramid_levels = [3, 4, 5, 6, 7]
+        else:
+            self.pyramid_levels = pyramid_levels       
         if strides is None:
             self.strides = [2 ** x for x in self.pyramid_levels]
+        else:
+            self.strides = strides
         if sizes is None:
             self.sizes = [2 ** (x + 2) for x in self.pyramid_levels]
+        else:
+            self.sizes = sizes
         if ratios is None:
             self.ratios = np.array([0.5, 1, 2])
+        else:
+            self.ratios = ratios
         if scales is None:
             self.scales = np.array([2 ** 0, 2 ** (1.0 / 3.0), 2 ** (2.0 / 3.0)])
+        else:
+            self.scales = scales
 
     def forward(self, image):
         
@@ -31,6 +41,9 @@ class Anchors(nn.Module):
             anchors         = generate_anchors(base_size=self.sizes[idx], ratios=self.ratios, scales=self.scales)
             shifted_anchors = shift(image_shapes[idx], self.strides[idx], anchors)
             all_anchors     = np.append(all_anchors, shifted_anchors, axis=0)
+
+        import pdb 
+        pdb.set_trace()
 
         all_anchors = np.expand_dims(all_anchors, axis=0)
 

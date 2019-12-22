@@ -44,11 +44,17 @@ __C.TRAIN.BATCH_SIZE = 128
 # Use ptyorch pretrained weight for backbone or not
 __C.TRAIN.BACKBONE_PRETRAINED = True
 
+# FocalLoss Parameters
+__C.TRAIN.ALPHA = 0.25
+__C.TRAIN.GAMMA = 2.0
+
+
 #
 # Testing options
 #
 __C.TEST = edict()
 
+__C.TEST.SCORE_THRESH = 0.05
 
 #
 # ResNet options
