@@ -8,10 +8,23 @@ from anchors import Anchors
 import losses
 # from lib.nms.pth_nms import pth_nms
 
+from config.config import cfg
+
+
+# def nms(dets, thresh):
+#     """Dispatch to either CPU or GPU NMS implementations.\
+#     Accept dets as tensor"""
+#     return pth_nms(dets, thresh)
+
 def nms(dets, thresh):
-    """Dispatch to either CPU or GPU NMS implementations.\
-    Accept dets as tensor"""
-    return pth_nms(dets, thresh)
+    """Dispatch to either CPU or GPU NMS implementations.
+    Accept dets as tensor
+    """
+    from torchvision.ops import nms as nms_torch
+    boxes = dets[:,:4] # x1y1x2y2
+    scores = dets[:,4] # score
+    output = nms_torch(boxes, scores, thresh)
+    return output.cuda()
 
 model_urls = {
     'resnet18': 'https://download.pytorch.org/models/resnet18-5c106cde.pth',
@@ -68,13 +81,7 @@ class PyramidFeatures(nn.Module):
         P7_x = self.P7_1(P6_x)
         P7_x = self.P7_2(P7_x)
 
-        output = [P3_x, P4_x, P5_x, P6_x, P7_x]
-        for i in range(len(output)):
-            print('P{}'.format(i+3))
-            print(output[i].shape)
-            print()
-        # return [P3_x, P4_x, P5_x, P6_x, P7_x]
-        return output
+        return [P3_x, P4_x, P5_x, P6_x, P7_x]
 
 
 class RegressionModel(nn.Module):
@@ -295,7 +302,7 @@ def resnet18(num_classes, pretrained=False, **kwargs):
     """
     model = ResNet(num_classes, BasicBlock, [2, 2, 2, 2], **kwargs)
     if pretrained:
-        model.load_state_dict(model_zoo.load_url(model_urls['resnet18'], model_dir='~/.torch/models'), strict=False)
+        model.load_state_dict(model_zoo.load_url(model_urls['resnet18'], model_dir='.'), strict=False)
     return model
 
 
@@ -306,7 +313,7 @@ def resnet34(num_classes, pretrained=False, **kwargs):
     """
     model = ResNet(num_classes, BasicBlock, [3, 4, 6, 3], **kwargs)
     if pretrained:
-        model.load_state_dict(model_zoo.load_url(model_urls['resnet34'], model_dir='.'), strict=False)
+        model.load_state_dict(model_zoo.load_url(model_urls['resnet34'], model_dir=cfg.TORCH_WEIGHT_DIR), strict=False)
     return model
 
 
@@ -315,10 +322,9 @@ def resnet50(num_classes, pretrained=False, **kwargs):
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
-    print('kwarfs: ', kwargs)
     model = ResNet(num_classes, Bottleneck, [3, 4, 6, 3], **kwargs)    
     if pretrained:
-        model.load_state_dict(model_zoo.load_url(model_urls['resnet50'], model_dir='.'), strict=False)
+        model.load_state_dict(model_zoo.load_url(model_urls['resnet50'], model_dir=cfg.TORCH_WEIGHT_DIR), strict=False)
     return model
 
 def resnet101(num_classes, pretrained=False, **kwargs):
@@ -328,7 +334,7 @@ def resnet101(num_classes, pretrained=False, **kwargs):
     """
     model = ResNet(num_classes, Bottleneck, [3, 4, 23, 3], **kwargs)
     if pretrained:
-        model.load_state_dict(model_zoo.load_url(model_urls['resnet101'], model_dir='.'), strict=False)
+        model.load_state_dict(model_zoo.load_url(model_urls['resnet101'], model_dir=cfg.TORCH_WEIGHT_DIR), strict=False)
     return model
 
 
@@ -339,5 +345,5 @@ def resnet152(num_classes, pretrained=False, **kwargs):
     """
     model = ResNet(num_classes, Bottleneck, [3, 8, 36, 3], **kwargs)
     if pretrained:
-        model.load_state_dict(model_zoo.load_url(model_urls['resnet152'], model_dir='.'), strict=False)
+        model.load_state_dict(model_zoo.load_url(model_urls['resnet152'], model_dir=cfg.TORCH_WEIGHT_DIR), strict=False)
     return model

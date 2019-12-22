@@ -22,11 +22,11 @@ import losses
 from dataloader import CocoDataset, CSVDataset, collater, Resizer, AspectRatioBasedSampler, Augmenter, UnNormalizer, Normalizer
 from torch.utils.data import Dataset, DataLoader
 
+from config.config import cfg, cfg_from_file, cfg_from_list, get_output_dir
+
 import coco_eval
 import csv_eval
 
-# === torch 1.0 >=
-# assert torch.__version__.split('.')[1] == '4'
 USE_CUDA = torch.cuda.is_available()
 print('CUDA available: {}'.format(USE_CUDA))
 
@@ -42,7 +42,7 @@ def main():
 	parser.add_argument('--csv_classes', help='Path to file containing class list (see readme)')
 	parser.add_argument('--csv_val', help='Path to file containing validation annotations (optional, see readme)')
 	parser.add_argument('--depth', help='Resnet depth, must be one of 18, 34, 50, 101, 152', type=int, default=50)
-	parser.add_argument('--epochs', help='Number of epochs', type=int, default=100)
+	parser.add_argument('--max_epochs', help='max epochs to train', type=int, default=100)
 	parser.add_argument('--show_loss', help='iteration to show loss info', type=int, default=1000)
 	args = parser.parse_args()
 
@@ -78,22 +78,18 @@ def main():
 
 	# Create the model
 	if args.depth == 18:
-		retinanet = model.resnet18(num_classes=dataset_train.num_classes(), pretrained=True)
+		retinanet = model.resnet18(num_classes=dataset_train.num_classes(), pretrained=cfg.TRAIN.BACKBONE_PRETRAINED)
 	elif args.depth == 34:
-		retinanet = model.resnet34(num_classes=dataset_train.num_classes(), pretrained=True)
+		retinanet = model.resnet34(num_classes=dataset_train.num_classes(), pretrained=cfg.TRAIN.BACKBONE_PRETRAINED)
 	elif args.depth == 50:
-		retinanet = model.resnet50(num_classes=dataset_train.num_classes(), pretrained=True)
+		retinanet = model.resnet50(num_classes=dataset_train.num_classes(), pretrained=cfg.TRAIN.BACKBONE_PRETRAINED)
 	elif args.depth == 101:
-		retinanet = model.resnet101(num_classes=dataset_train.num_classes(), pretrained=True)
+		retinanet = model.resnet101(num_classes=dataset_train.num_classes(), pretrained=cfg.TRAIN.BACKBONE_PRETRAINED)
 	elif args.depth == 152:
-		retinanet = model.resnet152(num_classes=dataset_train.num_classes(), pretrained=True)
+		retinanet = model.resnet152(num_classes=dataset_train.num_classes(), pretrained=cfg.TRAIN.BACKBONE_PRETRAINED)
 	else:
 		raise ValueError('Unsupported model depth, must be one of 18, 34, 50, 101, 152')		
 
-	import pdb
-	pdb.set_trace()
-
-	# use_gpu = True
 	use_gpu = USE_CUDA
 	if use_gpu:
 		retinanet = retinanet.cuda()
@@ -101,7 +97,7 @@ def main():
 	retinanet = torch.nn.DataParallel(retinanet).cuda()
 
 	retinanet.training = True
-	optimizer = optim.Adam(retinanet.parameters(), lr=1e-5)
+	optimizer = optim.Adam(retinanet.parameters(), lr=cfg.TRAIN.LR)
 	scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=3, verbose=True)
 	loss_hist = collections.deque(maxlen=500)
 
@@ -109,9 +105,8 @@ def main():
 	retinanet.module.freeze_bn()
 
 	print('Num training images: {}'.format(len(dataset_train)))
-	print('')
 
-	for epoch_num in range(args.epochs):
+	for epoch_num in range(args.max_epochs):
 
 		retinanet.train()
 		retinanet.module.freeze_bn()
@@ -133,9 +128,7 @@ def main():
 					continue
 
 				loss.backward()
-
 				torch.nn.utils.clip_grad_norm_(retinanet.parameters(), 0.1)
-
 				optimizer.step()
 
 				loss_hist.append(float(loss))
@@ -152,15 +145,11 @@ def main():
 				continue
 
 		if args.dataset == 'coco':
-
 			print('Evaluating dataset')
-
 			coco_eval.evaluate_coco(dataset_val, retinanet)
 
 		elif args.dataset == 'csv' and args.csv_val is not None:
-
 			print('Evaluating dataset')
-
 			mAP = csv_eval.evaluate(dataset_val, retinanet)
 
 		
